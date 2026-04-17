@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { sampleActivities } from '../data/sampleActivities'
-import { sampleHubs } from '../data/sampleHubs'
 import { ChevronDown, Loader2, Users } from 'lucide-react'
 import Layout from '../components/Layout'
 import CitySelector from '../components/CitySelector'
 import ActivityCard from '../components/ActivityCard'
 import HubCard from '../components/HubCard'
+import { activityApi, hubApi } from '../lib/api'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'activities' | 'hubs'>('activities')
   const [currentCity, setCurrentCity] = useState('北京')
   const [isLocating, setIsLocating] = useState(false)
   const [showCitySelector, setShowCitySelector] = useState(false)
+  const [activities, setActivities] = useState<any[]>([])
+  const [hubs, setHubs] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
 
   const cities = [
@@ -44,6 +46,28 @@ export default function Home() {
 
     getLocation()
   }, [])
+
+  useEffect(() => {
+    // 获取活动和据点数据
+    const fetchData = async () => {
+      setIsLoading(true)
+      try {
+        // 获取活动列表
+        const activitiesData = await activityApi.listActivities({ location: currentCity })
+        setActivities(activitiesData)
+
+        // 获取据点列表
+        const hubsData = await hubApi.listHubs({ location: currentCity })
+        setHubs(hubsData)
+      } catch (error) {
+        console.error('获取数据失败:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [currentCity])
 
   return (
     <Layout>
@@ -97,15 +121,19 @@ export default function Home() {
         </header>
 
         <main className="max-w-4xl mx-auto p-4">
-          {activeTab === 'activities' ? (
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+          ) : activeTab === 'activities' ? (
             <div className="grid gap-4">
-              {sampleActivities.map((activity) => (
+              {activities.map((activity) => (
                 <ActivityCard key={activity.id} {...activity} />
               ))}
             </div>
           ) : (
             <div className="grid gap-4">
-              {sampleHubs.map((hub) => (
+              {hubs.map((hub) => (
                 <HubCard key={hub.id} {...hub} />
               ))}
             </div>
